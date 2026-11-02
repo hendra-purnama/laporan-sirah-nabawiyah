@@ -31,6 +31,18 @@ button.secondary{background:#e9e7df;color:var(--ink)}button:hover{opacity:.85}
 .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.full{grid-column:1/-1}
 .admin-chapter{display:grid;grid-template-columns:48px 1fr 180px auto;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .hidden{display:none!important}.notice{font:12px Arial,sans-serif;color:var(--muted);margin:10px 0}.error{color:#a13b2b}
+
+.deadline-tracker{margin:0 0 20px;padding:18px;border-left:4px solid #a13b2b}
+.deadline-tracker.on-track{border-left-color:#456c53}
+.deadline-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.deadline-badge{display:inline-block;padding:5px 9px;border-radius:3px;background:#f5e5e1;color:#a13b2b;font:bold 10px Arial,sans-serif;letter-spacing:.04em}
+.deadline-tracker.on-track .deadline-badge{background:#e5eee6;color:#456c53}
+.deadline-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.deadline-metric{padding:10px;background:#f7f6f1;border-radius:3px}
+.deadline-value{font-size:25px;line-height:1.2}
+.deadline-label{font:10px Arial,sans-serif;color:var(--muted);margin-top:4px}
+.deadline-message{font:12px Arial,sans-serif;color:var(--muted);margin:14px 0 0}
+@media(max-width:650px){.deadline-grid{grid-template-columns:1fr 1fr}.deadline-grid .deadline-metric:last-child{grid-column:1/-1}}
 @media(max-width:650px){.page{width:calc(100% - 24px);padding-top:22px}header{padding:35px 0 24px}.overview{grid-template-columns:1fr}.stats{padding:16px 2px}.stat{padding:4px 11px}.num{font-size:26px}.chapter{grid-template-columns:28px 1fr;gap:8px;padding:10px 11px}.status{grid-column:2;justify-self:start;margin-top:-3px}.notes,.formgrid{grid-template-columns:1fr}.full{grid-column:auto}.admin-chapter{grid-template-columns:28px 1fr}.admin-chapter select,.admin-chapter button{grid-column:2}.section-head{align-items:start;flex-direction:column}}
 @media print{body{background:white}.page{width:100%;padding:0}.admin-link,#admin{display:none!important}.chapter{min-height:36px;padding:5px 12px}}
 </style>
@@ -74,7 +86,20 @@ button.secondary{background:#e9e7df;color:var(--ink)}button:hover{opacity:.85}
       <label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="password">
       <p><button id="loginBtn">Login</button></p>
     </div>
-    <div id="editorArea" class="hidden">
+    
+<div id="editorArea" class="hidden">
+      <section id="deadlineTracker" class="panel deadline-tracker" aria-live="polite">
+        <div class="deadline-top">
+          <div><div class="eyebrow">Pemantauan khusus admin</div><h3 style="margin:5px 0 0">Deadline Tracker</h3></div>
+          <span id="deadlineStatus" class="deadline-badge">Menghitung…</span>
+        </div>
+        <div class="deadline-grid">
+          <div class="deadline-metric"><div class="deadline-value" id="deadlineDone">—</div><div class="deadline-label">Bab selesai saat ini</div></div>
+          <div class="deadline-metric"><div class="deadline-value" id="deadlineTarget">—</div><div class="deadline-label">Target kumulatif hari ini</div></div>
+          <div class="deadline-metric"><div class="deadline-value" id="deadlineDaily">—</div><div class="deadline-label">Rata-rata bab/hari yang dibutuhkan</div></div>
+        </div>
+        <p id="deadlineMessage" class="deadline-message"></p>
+      </section>
       <h3>Informasi buku</h3>
       <div class="formgrid">
         <div class="full"><label>Judul buku</label><input id="editTitle"></div>
@@ -116,7 +141,38 @@ function dateLabel(value){
   const d = new Date(value + "T00:00:00");
   return "Pembaruan · " + d.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
 }
+
 function statusLabel(s){return s==="done"?"Selesai":s==="ongoing"?"Sedang dikerjakan":"Belum dimulai";}
+
+// Periode tetap; semua hari kalender termasuk Sabtu dan Minggu.
+const DEADLINE_START="2026-10-27";
+const DEADLINE_END="2026-11-08";
+function localDate(value){const [y,m,d]=value.split("-").map(Number);return new Date(y,m-1,d);}
+function dayDiff(a,b){return Math.round((Date.UTC(b.getFullYear(),b.getMonth(),b.getDate())-Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()))/86400000);}
+function renderDeadline(){
+  if(!settings || !chapters.length) return;
+  const now=new Date(), today=localDate(now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0"));
+  const start=localDate(DEADLINE_START), end=localDate(DEADLINE_END);
+  const totalDays=dayDiff(start,end)+1;
+  const elapsed=Math.max(0,Math.min(totalDays,dayDiff(start,today)+1));
+  const remainingDays=Math.max(0,dayDiff(today,end)+1);
+  const done=chapters.filter(c=>c.status==="done").length;
+  const target=elapsed===0?0:Math.ceil(chapters.length*elapsed/totalDays);
+  const remaining=Math.max(0,chapters.length-done);
+  const daily=remainingDays>0?remaining/remainingDays:remaining;
+  const onTrack=done>=target && (today<=end || done===chapters.length);
+  $("deadlineTracker").classList.toggle("on-track",onTrack);
+  $("deadlineStatus").textContent=onTrack?"SESUAI TARGET":"TERTINGGAL DARI TARGET";
+  $("deadlineDone").textContent=done+" / "+chapters.length;
+  $("deadlineTarget").textContent=target+" bab";
+  $("deadlineDaily").textContent=remainingDays>0?daily.toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2}):"—";
+  if(today<start) $("deadlineMessage").textContent="Periode pengerjaan dimulai 27 Oktober 2026. Pemantauan akan aktif pada tanggal tersebut.";
+  else if(today>end && done<chapters.length) $("deadlineMessage").textContent="Deadline 8 November 2026 telah terlewati. Masih ada "+remaining+" bab yang belum selesai.";
+  else if(done===chapters.length) $("deadlineMessage").textContent="Seluruh bab sudah selesai. Target penyuntingan telah tercapai.";
+  else if(onTrack) $("deadlineMessage").textContent="Progres sudah mencapai atau melampaui target kumulatif hari ini. Sisa "+remaining+" bab dalam "+remainingDays+" hari kalender.";
+  else $("deadlineMessage").textContent="Progres tertinggal "+(target-done)+" bab dari target kumulatif hari ini. Untuk menyelesaikan sisa "+remaining+" bab sebelum deadline, dibutuhkan rata-rata "+daily.toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2})+" bab per hari kalender.";
+}
+
 function render(){
   if(!settings) return;
   $("bookTitle").textContent=settings.title || "Judul buku";
@@ -141,6 +197,7 @@ function render(){
   $("doneCount").textContent=done;$("workingCount").textContent=working;$("todoCount").textContent=todo;
   $("chapterCountLabel").textContent="Total "+chapters.length+" bab";
   $("chapters").innerHTML=chapters.map((c,i)=>`<div class="chapter"><span class="no">${String(i+1).padStart(2,"0")}</span><span class="chapter-name">${escapeHtml(c.title)}</span><span class="status ${c.status}">${statusLabel(c.status)}</span></div>`).join("");
+  renderDeadline();
 }
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 async function loadData(){
@@ -178,7 +235,7 @@ async function refreshAdmin(){
   $("loginArea").classList.toggle("hidden",logged);
   $("editorArea").classList.toggle("hidden",!logged);
   $("logoutBtn").classList.toggle("hidden",!logged);
-  if(logged){await loadData();populateEditor();}
+  if(logged){await loadData();populateEditor();renderDeadline();}
 }
 $("loginBtn").addEventListener("click",async()=>{
   if(!configured)return;
