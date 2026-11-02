@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Progres Naskah</title>
+<style>
+:root{--ink:#242720;--muted:#74796f;--paper:#f6f5ef;--panel:#fffefa;--line:#e5e3d9;--accent:#9d4d32;--green:#456c53;--gold:#98732f}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Georgia,"Times New Roman",serif;line-height:1.55}
+.page{width:min(100% - 32px,980px);margin:auto;padding:34px 0 54px}
+.top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:13px;color:var(--muted);font:11px Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+header{padding:48px 0 30px}.eyebrow{font:11px Arial,sans-serif;color:var(--accent);font-weight:bold;letter-spacing:.16em;text-transform:uppercase}
+h1{font-size:clamp(36px,7vw,62px);line-height:1.04;letter-spacing:-.045em;font-weight:400;margin:12px 0}
+.subtitle{font-size:16px;color:var(--muted);margin:0}.byline{font:13px Arial,sans-serif;color:var(--muted);margin-top:18px}.byline strong{color:var(--ink)}
+.overview{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin:8px 0 38px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:5px}
+.progress{padding:22px}.pct{font-size:52px;line-height:1;letter-spacing:-.05em}.small{font:11px Arial,sans-serif;color:var(--muted);margin-top:8px}
+.track{height:8px;background:#eceae2;border-radius:20px;overflow:hidden;margin:20px 0 9px}.fill{height:100%;width:0;background:var(--accent);transition:width .2s}
+.progress-foot{display:flex;justify-content:space-between;font:10px Arial,sans-serif;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);padding:20px 6px}.stat{padding:4px 16px;border-right:1px solid var(--line)}.stat:last-child{border:0}.num{font-size:30px}.label{font:11px Arial,sans-serif;color:var(--muted)}
+.section-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:13px}.section-head h2{font-size:23px;font-weight:400;margin:5px 0 0}.section-note{font:10px Arial,sans-serif;color:var(--muted)}
+.chapter{display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line);min-height:52px}.chapter:last-child{border:0}.no{font:11px Arial,sans-serif;color:#9b9d95}.chapter-name{font-size:14px}.status{font:10px Arial,sans-serif;padding:5px 9px;border-radius:3px;white-space:nowrap}.done{background:#e5eee6;color:var(--green)}.ongoing{background:#f4eddc;color:var(--gold)}.todo{background:#efeee9;color:#777b73}
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px}.note{border-top:2px solid var(--accent);padding-top:10px}.note b{font: bold 10px Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase}.note p{font-size:12px;color:var(--muted);margin:5px 0}
+footer{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px;margin-top:40px;color:var(--muted);font:10px Arial,sans-serif}
+.admin-link{color:var(--muted);text-decoration:none}.admin-link:hover{color:var(--accent)}
+#admin{display:none;margin-top:28px;padding:20px}.admin-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+input,textarea,select{width:100%;font:14px Arial,sans-serif;padding:10px;border:1px solid var(--line);border-radius:3px;background:white;color:var(--ink)}
+label{display:block;font:11px Arial,sans-serif;color:var(--muted);margin:12px 0 5px}
+button{border:0;border-radius:3px;padding:10px 14px;background:var(--ink);color:white;font:12px Arial,sans-serif;cursor:pointer}
+button.secondary{background:#e9e7df;color:var(--ink)}button:hover{opacity:.85}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.full{grid-column:1/-1}
+.admin-chapter{display:grid;grid-template-columns:48px 1fr 180px auto;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.hidden{display:none!important}.notice{font:12px Arial,sans-serif;color:var(--muted);margin:10px 0}.error{color:#a13b2b}
+@media(max-width:650px){.page{width:calc(100% - 24px);padding-top:22px}header{padding:35px 0 24px}.overview{grid-template-columns:1fr}.stats{padding:16px 2px}.stat{padding:4px 11px}.num{font-size:26px}.chapter{grid-template-columns:28px 1fr;gap:8px;padding:10px 11px}.status{grid-column:2;justify-self:start;margin-top:-3px}.notes,.formgrid{grid-template-columns:1fr}.full{grid-column:auto}.admin-chapter{grid-template-columns:28px 1fr}.admin-chapter select,.admin-chapter button{grid-column:2}.section-head{align-items:start;flex-direction:column}}
+@media print{body{background:white}.page{width:100%;padding:0}.admin-link,#admin{display:none!important}.chapter{min-height:36px;padding:5px 12px}}
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="top"><span>Laporan perkembangan naskah</span><span id="updatedTop">Memuat data…</span></div>
+  <header>
+    <div class="eyebrow">Laporan penulisan</div>
+    <h1 id="bookTitle">Memuat judul…</h1>
+    <p class="subtitle" id="description"></p>
+    <div class="byline" id="credits"></div>
+  </header>
+  <section class="overview">
+    <div class="panel progress">
+      <div class="pct" id="percent">—</div><div class="small">Bab yang telah diselesaikan</div>
+      <div class="track"><div class="fill" id="bar"></div></div>
+      <div class="progress-foot"><span id="completedCount">—</span><span id="totalCount">—</span></div>
+    </div>
+    <div class="panel stats">
+      <div class="stat"><div class="num" id="doneCount">—</div><div class="label">Selesai</div></div>
+      <div class="stat"><div class="num" id="workingCount">—</div><div class="label">Sedang dikerjakan</div></div>
+      <div class="stat"><div class="num" id="todoCount">—</div><div class="label">Belum dimulai</div></div>
+    </div>
+  </section>
+  <section>
+    <div class="section-head"><div><div class="eyebrow">Rincian pekerjaan</div><h2>Status setiap bab</h2></div><div class="section-note" id="chapterCountLabel"></div></div>
+    <div class="panel" id="chapters"><div class="chapter">Mengambil data…</div></div>
+  </section>
+  <section class="notes">
+    <div class="note"><b>Catatan perkembangan</b><p id="progressNote">—</p></div>
+    <div class="note"><b>Keterangan</b><p id="methodNote">Persentase dihitung dari jumlah bab berstatus selesai dibandingkan total bab.</p></div>
+  </section>
+  <footer><span id="footerCredits"></span><span id="updatedFooter"></span><a class="admin-link" href="?admin=1">Admin</a></footer>
+
+  <section class="panel" id="admin">
+    <div class="admin-head"><div><div class="eyebrow">Area terbatas</div><h2>Panel admin</h2></div><button id="logoutBtn" class="secondary hidden">Keluar</button></div>
+    <div id="loginArea">
+      <p class="notice">Masuk menggunakan akun admin yang sudah didaftarkan.</p>
+      <label>Email</label><input id="email" type="email" autocomplete="username" placeholder="email admin">
+      <label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="password">
+      <p><button id="loginBtn">Login</button></p>
+    </div>
+    <div id="editorArea" class="hidden">
+      <h3>Informasi buku</h3>
+      <div class="formgrid">
+        <div class="full"><label>Judul buku</label><input id="editTitle"></div>
+        <div><label>Nama penulis</label><input id="editAuthor"></div>
+        <div><label>Nama editor</label><input id="editEditor"></div>
+        <div><label>Nama penerbit</label><input id="editPublisher"></div>
+        <div><label>Tanggal pembaruan</label><input id="editDate" type="date"></div>
+        <div class="full"><label>Deskripsi / keterangan</label><textarea id="editDescription" rows="2"></textarea></div>
+        <div class="full"><label>Catatan perkembangan</label><textarea id="editNote" rows="3"></textarea></div>
+      </div>
+      <p><button id="saveSettings">Simpan informasi buku</button></p>
+      <hr style="border:0;border-top:1px solid var(--line);margin:24px 0">
+      <h3>Daftar bab</h3><p class="notice">Ubah judul atau status bab, lalu simpan perubahan.</p>
+      <div id="adminChapters"></div>
+      <p><button id="saveChapters">Simpan perubahan bab</button></p>
+    </div>
+    <div class="notice" id="adminMessage" aria-live="polite"></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/*
+  KONFIGURASI:
+  Isi SUPABASE_URL dan SUPABASE_ANON_KEY dari Project Settings > API
+  di dashboard Supabase. Kunci anon/publishable boleh dipakai di browser
+  karena keamanan data diatur oleh Row Level Security (RLS).
+  JANGAN PERNAH memasukkan service_role key ke file ini.
+*/
+const SUPABASE_URL = "https://khzrgwxnoqzkliekdfkc.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Ni3HgTtGu8iCuSj7E0JSZQ_NgQAL0IG";
+const configured = !SUPABASE_URL.startsWith("ISI_") && !SUPABASE_ANON_KEY.startsWith("ISI_");
+const client = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const $ = id => document.getElementById(id);
+let settings = null, chapters = [];
+
+function dateLabel(value){
+  if(!value) return "Belum diperbarui";
+  const d = new Date(value + "T00:00:00");
+  return "Pembaruan · " + d.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+}
+function statusLabel(s){return s==="done"?"Selesai":s==="ongoing"?"Sedang dikerjakan":"Belum dimulai";}
+function render(){
+  if(!settings) return;
+  $("bookTitle").textContent=settings.title || "Judul buku";
+  $("description").textContent=settings.description || "";
+  const credits=[];
+  if(settings.author) credits.push("Penulis: <strong>"+escapeHtml(settings.author)+"</strong>");
+  if(settings.editor) credits.push("Editor: <strong>"+escapeHtml(settings.editor)+"</strong>");
+  if(settings.publisher) credits.push("Penerbit: <strong>"+escapeHtml(settings.publisher)+"</strong>");
+  $("credits").innerHTML=credits.join(" &nbsp;·&nbsp; ");
+  $("footerCredits").textContent=[settings.author,settings.editor,settings.publisher].filter(Boolean).join(" · ");
+  $("updatedTop").textContent=dateLabel(settings.updated_at);
+  $("updatedFooter").textContent=dateLabel(settings.updated_at);
+  $("progressNote").textContent=settings.progress_note || "Belum ada catatan perkembangan.";
+  const done=chapters.filter(c=>c.status==="done").length;
+  const working=chapters.filter(c=>c.status==="ongoing").length;
+  const todo=chapters.length-done-working;
+  const pct=chapters.length ? done/chapters.length*100 : 0;
+  $("percent").textContent=pct.toLocaleString("id-ID",{minimumFractionDigits:1,maximumFractionDigits:1})+"%";
+  $("bar").style.width=pct+"%";
+  $("completedCount").textContent=done+" dari "+chapters.length+" bab";
+  $("totalCount").textContent="Target: "+chapters.length+" bab";
+  $("doneCount").textContent=done;$("workingCount").textContent=working;$("todoCount").textContent=todo;
+  $("chapterCountLabel").textContent="Total "+chapters.length+" bab";
+  $("chapters").innerHTML=chapters.map((c,i)=>`<div class="chapter"><span class="no">${String(i+1).padStart(2,"0")}</span><span class="chapter-name">${escapeHtml(c.title)}</span><span class="status ${c.status}">${statusLabel(c.status)}</span></div>`).join("");
+}
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+async function loadData(){
+  if(!configured){$("chapters").innerHTML='<div class="chapter">Website belum dihubungkan ke database. Ikuti petunjuk di README untuk mengisi konfigurasi Supabase.</div>'; $("updatedTop").textContent="Menunggu konfigurasi"; return;}
+  const [s,c]=await Promise.all([
+    client.from("project_settings").select("*").eq("id",1).maybeSingle(),
+    client.from("chapters").select("*").order("chapter_no")
+  ]);
+  if(s.error||c.error){$("chapters").innerHTML='<div class="chapter">Gagal memuat data. Periksa konfigurasi dan kebijakan database.</div>';console.error(s.error,c.error);return;}
+  settings=s.data;chapters=c.data||[];
+  if(!settings){$("chapters").innerHTML='<div class="chapter">Data proyek belum dibuat. Jalankan SQL setup yang disertakan.</div>';return;}
+  render();
+}
+async function isAdmin(){
+  const {data:{user}}=await client.auth.getUser();
+  return !!user;
+}
+function showAdmin(){
+  $("admin").style.display="block";
+  $("admin").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function populateEditor(){
+  $("editTitle").value=settings.title||"";
+  $("editAuthor").value=settings.author||"";
+  $("editEditor").value=settings.editor||"";
+  $("editPublisher").value=settings.publisher||"";
+  $("editDate").value=settings.updated_at||"";
+  $("editDescription").value=settings.description||"";
+  $("editNote").value=settings.progress_note||"";
+  $("adminChapters").innerHTML=chapters.map((c,i)=>`<div class="admin-chapter" data-id="${c.id}"><span class="no">${String(i+1).padStart(2,"0")}</span><input class="chapter-edit-title" value="${escapeHtml(c.title)}" aria-label="Judul bab ${i+1}"><select class="chapter-edit-status" aria-label="Status bab ${i+1}"><option value="todo" ${c.status==="todo"?"selected":""}>Belum dimulai</option><option value="ongoing" ${c.status==="ongoing"?"selected":""}>Sedang dikerjakan</option><option value="done" ${c.status==="done"?"selected":""}>Selesai</option></select><button class="secondary remove-chapter" type="button">Hapus</button></div>`).join("");
+  document.querySelectorAll(".remove-chapter").forEach(btn=>btn.addEventListener("click",e=>e.currentTarget.closest(".admin-chapter").remove()));
+}
+async function refreshAdmin(){
+  const logged=await isAdmin();
+  $("loginArea").classList.toggle("hidden",logged);
+  $("editorArea").classList.toggle("hidden",!logged);
+  $("logoutBtn").classList.toggle("hidden",!logged);
+  if(logged){await loadData();populateEditor();}
+}
+$("loginBtn").addEventListener("click",async()=>{
+  if(!configured)return;
+  $("adminMessage").textContent="Memproses login…";
+  const {error}=await client.auth.signInWithPassword({email:$("email").value,password:$("password").value});
+  $("adminMessage").textContent=error?error.message:"Login berhasil.";
+  if(!error)await refreshAdmin();
+});
+$("logoutBtn").addEventListener("click",async()=>{await client.auth.signOut();$("adminMessage").textContent="Kamu sudah keluar.";await refreshAdmin();});
+$("saveSettings").addEventListener("click",async()=>{
+  const payload={id:1,title:$("editTitle").value.trim(),author:$("editAuthor").value.trim(),editor:$("editEditor").value.trim(),publisher:$("editPublisher").value.trim(),description:$("editDescription").value.trim(),progress_note:$("editNote").value.trim(),updated_at:$("editDate").value||null};
+  const {error}=await client.from("project_settings").upsert(payload);
+  $("adminMessage").textContent=error?"Gagal menyimpan: "+error.message:"Informasi buku berhasil disimpan.";
+  if(!error){settings=payload;render();}
+});
+$("saveChapters").addEventListener("click",async()=>{
+  const rows=[...document.querySelectorAll(".admin-chapter")].map((el,i)=>({id:Number(el.dataset.id),chapter_no:i+1,title:el.querySelector(".chapter-edit-title").value.trim(),status:el.querySelector(".chapter-edit-status").value}));
+  if(rows.some(r=>!r.title)){ $("adminMessage").textContent="Judul bab tidak boleh kosong.";return;}
+  const {error:delError}=await client.from("chapters").delete().not("id","in",`(${rows.map(r=>r.id).join(",")})`);
+  if(delError){$("adminMessage").textContent="Gagal menyimpan: "+delError.message;return;}
+  const {error}=await client.from("chapters").upsert(rows);
+  $("adminMessage").textContent=error?"Gagal menyimpan: "+error.message:"Daftar bab berhasil diperbarui.";
+  if(!error)await loadData();
+});
+if(new URLSearchParams(location.search).get("admin")==="1"){
+  showAdmin();
+  if(configured){client.auth.onAuthStateChange(()=>refreshAdmin());refreshAdmin();}
+  else $("adminMessage").textContent="Hubungkan website ke Supabase terlebih dahulu. Lihat README.";
+}
+loadData();
+</script>
+</body>
+</html>
