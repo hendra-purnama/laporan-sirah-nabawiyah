@@ -31,6 +31,8 @@ button.secondary{background:#e9e7df;color:var(--ink)}button:hover{opacity:.85}
 .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.full{grid-column:1/-1}
 .admin-chapter{display:grid;grid-template-columns:48px 1fr 180px auto;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .hidden{display:none!important}.notice{font:12px Arial,sans-serif;color:var(--muted);margin:10px 0}.error{color:#a13b2b}
+.admin-section{border-top:1px solid var(--line);margin-top:24px;padding-top:18px}
+.admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 
 .deadline-tracker{margin:0 0 20px;padding:18px;border-left:4px solid #a13b2b}
 .deadline-tracker.on-track{border-left-color:#456c53}
@@ -100,6 +102,15 @@ button.secondary{background:#e9e7df;color:var(--ink)}button:hover{opacity:.85}
         </div>
         <p id="deadlineMessage" class="deadline-message"></p>
       </section>
+      <div class="admin-section">
+        <h3>Pengaturan periode pengerjaan</h3>
+        <p class="notice">Tanggal ini digunakan untuk menghitung target dan sisa waktu pada Deadline Tracker.</p>
+        <div class="formgrid">
+          <div><label for="editDeadlineStart">Tanggal mulai</label><input id="editDeadlineStart" type="date"></div>
+          <div><label for="editDeadlineEnd">Tanggal tenggat</label><input id="editDeadlineEnd" type="date"></div>
+        </div>
+        <p><button id="saveDeadline">Simpan periode pengerjaan</button></p>
+      </div>
       <h3>Informasi buku</h3>
       <div class="formgrid">
         <div class="full"><label>Judul buku</label><input id="editTitle"></div>
@@ -112,7 +123,8 @@ button.secondary{background:#e9e7df;color:var(--ink)}button:hover{opacity:.85}
       </div>
       <p><button id="saveSettings">Simpan informasi buku</button></p>
       <hr style="border:0;border-top:1px solid var(--line);margin:24px 0">
-      <h3>Daftar bab</h3><p class="notice">Ubah judul atau status bab, lalu simpan perubahan.</p>
+      <h3>Daftar bab</h3><p class="notice">Tambah bab baru, ubah judul atau status, atau hapus bab. Persentase akan dihitung ulang otomatis setelah disimpan.</p>
+      <div class="admin-actions"><button id="addChapter" class="secondary" type="button">+ Tambah bab</button></div>
       <div id="adminChapters"></div>
       <p><button id="saveChapters">Simpan perubahan bab</button></p>
     </div>
@@ -144,15 +156,15 @@ function dateLabel(value){
 
 function statusLabel(s){return s==="done"?"Selesai":s==="ongoing"?"Sedang dikerjakan":"Belum dimulai";}
 
-// Periode tetap; semua hari kalender termasuk Sabtu dan Minggu.
-const DEADLINE_START="2026-10-27";
-const DEADLINE_END="2026-11-08";
+// Periode dibaca dari project_settings; semua hari kalender termasuk Sabtu dan Minggu.
+const DEFAULT_DEADLINE_START="2026-10-27";
+const DEFAULT_DEADLINE_END="2026-11-08";
 function localDate(value){const [y,m,d]=value.split("-").map(Number);return new Date(y,m-1,d);}
 function dayDiff(a,b){return Math.round((Date.UTC(b.getFullYear(),b.getMonth(),b.getDate())-Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()))/86400000);}
 function renderDeadline(){
   if(!settings || !chapters.length) return;
   const now=new Date(), today=localDate(now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0"));
-  const start=localDate(DEADLINE_START), end=localDate(DEADLINE_END);
+  const start=localDate(settings.deadline_start || DEFAULT_DEADLINE_START), end=localDate(settings.deadline_end || DEFAULT_DEADLINE_END);
   const totalDays=dayDiff(start,end)+1;
   const elapsed=Math.max(0,Math.min(totalDays,dayDiff(start,today)+1));
   const remainingDays=Math.max(0,dayDiff(today,end)+1);
@@ -166,8 +178,10 @@ function renderDeadline(){
   $("deadlineDone").textContent=done+" / "+chapters.length;
   $("deadlineTarget").textContent=target+" bab";
   $("deadlineDaily").textContent=remainingDays>0?daily.toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2}):"—";
-  if(today<start) $("deadlineMessage").textContent="Periode pengerjaan dimulai 27 Oktober 2026. Pemantauan akan aktif pada tanggal tersebut.";
-  else if(today>end && done<chapters.length) $("deadlineMessage").textContent="Deadline 8 November 2026 telah terlewati. Masih ada "+remaining+" bab yang belum selesai.";
+  const startText=start.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+  const endText=end.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+  if(today<start) $("deadlineMessage").textContent="Periode pengerjaan dimulai "+startText+". Pemantauan akan aktif pada tanggal tersebut.";
+  else if(today>end && done<chapters.length) $("deadlineMessage").textContent="Deadline "+endText+" telah terlewati. Masih ada "+remaining+" bab yang belum selesai.";
   else if(done===chapters.length) $("deadlineMessage").textContent="Seluruh bab sudah selesai. Target penyuntingan telah tercapai.";
   else if(onTrack) $("deadlineMessage").textContent="Progres sudah mencapai atau melampaui target kumulatif hari ini. Sisa "+remaining+" bab dalam "+remainingDays+" hari kalender.";
   else $("deadlineMessage").textContent="Progres tertinggal "+(target-done)+" bab dari target kumulatif hari ini. Untuk menyelesaikan sisa "+remaining+" bab sebelum deadline, dibutuhkan rata-rata "+daily.toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2})+" bab per hari kalender.";
@@ -225,9 +239,29 @@ function populateEditor(){
   $("editEditor").value=settings.editor||"";
   $("editPublisher").value=settings.publisher||"";
   $("editDate").value=settings.updated_at||"";
+  $("editDeadlineStart").value=settings.deadline_start||DEFAULT_DEADLINE_START;
+  $("editDeadlineEnd").value=settings.deadline_end||DEFAULT_DEADLINE_END;
   $("editDescription").value=settings.description||"";
   $("editNote").value=settings.progress_note||"";
-  $("adminChapters").innerHTML=chapters.map((c,i)=>`<div class="admin-chapter" data-id="${c.id}"><span class="no">${String(i+1).padStart(2,"0")}</span><input class="chapter-edit-title" value="${escapeHtml(c.title)}" aria-label="Judul bab ${i+1}"><select class="chapter-edit-status" aria-label="Status bab ${i+1}"><option value="todo" ${c.status==="todo"?"selected":""}>Belum dimulai</option><option value="ongoing" ${c.status==="ongoing"?"selected":""}>Sedang dikerjakan</option><option value="done" ${c.status==="done"?"selected":""}>Selesai</option></select><button class="secondary remove-chapter" type="button">Hapus</button></div>`).join("");
+  renderAdminChapters();
+}
+function chapterEditorRow(c,i){
+  return `<div class="admin-chapter" data-id="${c.id ?? ""}">
+    <span class="no">${String(i+1).padStart(2,"0")}</span>
+    <input class="chapter-edit-title" value="${escapeHtml(c.title)}" aria-label="Judul bab ${i+1}">
+    <select class="chapter-edit-status" aria-label="Status bab ${i+1}">
+      <option value="todo" ${c.status==="todo"?"selected":""}>Belum dimulai</option>
+      <option value="ongoing" ${c.status==="ongoing"?"selected":""}>Sedang dikerjakan</option>
+      <option value="done" ${c.status==="done"?"selected":""}>Selesai</option>
+    </select>
+    <button class="secondary remove-chapter" type="button">Hapus</button>
+  </div>`;
+}
+function renderAdminChapters(){
+  $("adminChapters").innerHTML=chapters.map((c,i)=>chapterEditorRow(c,i)).join("");
+  bindRemoveButtons();
+}
+function bindRemoveButtons(){
   document.querySelectorAll(".remove-chapter").forEach(btn=>btn.addEventListener("click",e=>e.currentTarget.closest(".admin-chapter").remove()));
 }
 async function refreshAdmin(){
@@ -246,19 +280,60 @@ $("loginBtn").addEventListener("click",async()=>{
 });
 $("logoutBtn").addEventListener("click",async()=>{await client.auth.signOut();$("adminMessage").textContent="Kamu sudah keluar.";await refreshAdmin();});
 $("saveSettings").addEventListener("click",async()=>{
-  const payload={id:1,title:$("editTitle").value.trim(),author:$("editAuthor").value.trim(),editor:$("editEditor").value.trim(),publisher:$("editPublisher").value.trim(),description:$("editDescription").value.trim(),progress_note:$("editNote").value.trim(),updated_at:$("editDate").value||null};
+  const payload={id:1,title:$("editTitle").value.trim(),author:$("editAuthor").value.trim(),editor:$("editEditor").value.trim(),publisher:$("editPublisher").value.trim(),description:$("editDescription").value.trim(),progress_note:$("editNote").value.trim(),updated_at:$("editDate").value||null,deadline_start:settings.deadline_start||DEFAULT_DEADLINE_START,deadline_end:settings.deadline_end||DEFAULT_DEADLINE_END};
   const {error}=await client.from("project_settings").upsert(payload);
   $("adminMessage").textContent=error?"Gagal menyimpan: "+error.message:"Informasi buku berhasil disimpan.";
-  if(!error){settings=payload;render();}
+  if(!error){settings={...settings,...payload};render();}
+});
+$("saveDeadline").addEventListener("click",async()=>{
+  const start=$("editDeadlineStart").value;
+  const end=$("editDeadlineEnd").value;
+  if(!start || !end){$("adminMessage").textContent="Tanggal mulai dan tenggat wajib diisi.";return;}
+  if(end<start){$("adminMessage").textContent="Tanggal tenggat tidak boleh lebih awal daripada tanggal mulai.";return;}
+  $("adminMessage").textContent="Menyimpan periode pengerjaan…";
+  const {error}=await client.from("project_settings").update({deadline_start:start,deadline_end:end}).eq("id",1);
+  $("adminMessage").textContent=error?"Gagal menyimpan periode: "+error.message:"Periode pengerjaan berhasil diperbarui.";
+  if(!error){settings={...settings,deadline_start:start,deadline_end:end};renderDeadline();}
+});
+$("addChapter").addEventListener("click",()=>{
+  const wrapper=document.createElement("div");
+  const index=$("adminChapters").querySelectorAll(".admin-chapter").length;
+  wrapper.innerHTML=chapterEditorRow({id:null,title:"",status:"todo"},index);
+  $("adminChapters").appendChild(wrapper.firstElementChild);
+  bindRemoveButtons();
+  $("adminChapters").lastElementChild.querySelector(".chapter-edit-title").focus();
 });
 $("saveChapters").addEventListener("click",async()=>{
-  const rows=[...document.querySelectorAll(".admin-chapter")].map((el,i)=>({id:Number(el.dataset.id),chapter_no:i+1,title:el.querySelector(".chapter-edit-title").value.trim(),status:el.querySelector(".chapter-edit-status").value}));
+  const elements=[...document.querySelectorAll(".admin-chapter")];
+  const rows=elements.map((el,i)=>({
+    id:el.dataset.id ? Number(el.dataset.id) : null,
+    title:el.querySelector(".chapter-edit-title").value.trim(),
+    status:el.querySelector(".chapter-edit-status").value
+  }));
   if(rows.some(r=>!r.title)){ $("adminMessage").textContent="Judul bab tidak boleh kosong.";return;}
-  const {error:delError}=await client.from("chapters").delete().not("id","in",`(${rows.map(r=>r.id).join(",")})`);
-  if(delError){$("adminMessage").textContent="Gagal menyimpan: "+delError.message;return;}
-  const {error}=await client.from("chapters").upsert(rows);
-  $("adminMessage").textContent=error?"Gagal menyimpan: "+error.message:"Daftar bab berhasil diperbarui.";
-  if(!error)await loadData();
+  $("adminMessage").textContent="Menyimpan daftar bab…";
+
+  const retainedIds=rows.filter(r=>r.id!==null).map(r=>r.id);
+  const removedIds=chapters.map(c=>c.id).filter(id=>!retainedIds.includes(id));
+  if(removedIds.length){
+    const {error}=await client.from("chapters").delete().in("id",removedIds);
+    if(error){$("adminMessage").textContent="Gagal menghapus bab: "+error.message;return;}
+  }
+
+  let nextNo=chapters.reduce((max,c)=>Math.max(max,Number(c.chapter_no)||0),0)+1;
+  for(const row of rows){
+    let result;
+    if(row.id!==null){
+      result=await client.from("chapters").update({title:row.title,status:row.status}).eq("id",row.id);
+    }else{
+      result=await client.from("chapters").insert({chapter_no:nextNo++,title:row.title,status:row.status});
+    }
+    if(result.error){$("adminMessage").textContent="Gagal menyimpan bab: "+result.error.message;return;}
+  }
+
+  $("adminMessage").textContent="Daftar bab berhasil diperbarui.";
+  await loadData();
+  populateEditor();
 });
 if(new URLSearchParams(location.search).get("admin")==="1"){
   showAdmin();
